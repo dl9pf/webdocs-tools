@@ -1,7 +1,7 @@
 {
-  "name": "webdoc-doctools",
+  "name": "websdocs-doctools",
   "version": "0.0.1",
-  "description": "website doc tools by IoT.bzh",
+  "description": "WebDocs Tools for Technical Documentation by IoT.bzh",
   "main": "echo \"not specified\" && exit 1",
   "directories": {
     "doc": "doc"

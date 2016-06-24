@@ -9,39 +9,43 @@ iotbzh/webdoc-tools relies on https://jekyllrb.com and proposed scripts are larg
 Installing
 ==========
 
-*** dependencies on Jekyll
-* Ruby
-* RubyGems
-* NodeJs+npm
-* Python
-* Jekyll
-* sass
+## dependencies on Jekyll
+- Ruby
+- RubyGems
+- NodeJs+npm
+- Python
+- Jekyll
+- Gem/sass
 
 Follow Jekyll instalation at https://jekyllrb.com/docs/installation/
 Add Gem SCSS with "sudo gem install sass"
 
-*** install webdoc-tools + webdoc-sample
+## install webdoc-tools + webdoc-sample
 
-* git clone http://github.com/iotbzh/webdoc-tools
-* git clone http://github.com/iotbzh/webdoc-sample
+```
+ git clone http://github.com/iotbzh/webdoc-tools
+ git clone http://github.com/iotbzh/webdoc-sample
+ cd xxx/webdoc-tools;  npm install
+```
 
-cd xxx/webdoc-tools;  npm install
-cd xxx/webdoc-sample; npm install
+## configure webdoc-sample
 
-*** configure webdoc-sample
+- Edit webdoc-sample/conf/AppDefault and change GEM_FILE + Doc_TOOLS to point on the right path.
+- Default configuration concider that webdoc-tools + webdoc-sample site within the same parent directory and then GEM_FILE is located into webdoc-tools.
 
-Edit webdoc-sample/conf/AppDefault and change GEM_FILE + Doc_TOOLS to point on the right path.
-Default configuration concider that webdoc-tools + webdoc-sample site within the same parent directory and then GEM_FILE is located into webdoc-tools.
+## generate a 1st site from your template
 
-*** generate a 1st site from your template
+```
+ ./build --clean
+ ./build --fetch
+ ./build --config
+ ./build --html --serve --watch
+  point a browser on http://localhost:4000
+```
 
-* ./build.js --clean
-* ./build.js --fetch
-* ./build.js --config
-* ./build.js --html --serve --watch
-* point a browser on http://localhost:4000
+## bugs
 
-*** bugs
-
-* --fetch is asynchronous combining --fetch with options will fail
-* --watch to automatically regenerate pages on markdown file, you should force "./build --configs" when changing TOC or versions.
+``
+--fetch is asynchronous combining --fetch with options will fail
+--watch to automatically regenerate pages on markdown file, you should force "./build --configs" when changing TOC or versions.
+``
