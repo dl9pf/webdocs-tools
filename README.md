@@ -10,22 +10,41 @@ Installing
 ==========
 
 ## dependencies on Jekyll
+- NodeJs+npm
 - Ruby
 - RubyGems
-- NodeJs+npm
 - Python
 - Jekyll
-- Gem/sass
 
 Follow Jekyll instalation at https://jekyllrb.com/docs/installation/
 Add Gem SCSS with "sudo gem install sass"
 
+On OpenSuse on any other Linux plateform installation should be as simple as
+```
+ sudo zypper install ruby2.1-devel
+ sudo zypper install ruby2.1-rubygem-bundler
+ sudo zypper install ruby2.1-rubygem-ffi 
+ sudo gem install jekyll
+ sudo gem install redcarpet
+```
+IMPORTANT: check that "jekyll" command exist. If your installation uses a different
+name "ie: jekyll-version" reflect the actual name within conf/AppDefault.js
+
+WARNING: 
++ would you choose to install everything through GEM bypassing your
+standard distribution package management, this may impose you to compile 
+a couple of Ruby native extentions. If "gem install" fails you probably
+miss some required tools like: gcc, libffi-devel-gcc5, ...
++ command "gem search --local" should display  jekyll+redcarpet+rouge+sass
+
 ## install webdoc-tools + webdoc-sample
 
 ```
- git clone http://github.com/iotbzh/webdoc-tools
- git clone http://github.com/iotbzh/webdoc-sample
- cd xxx/webdoc-tools;  npm install
+ mkdir WebDocs; cd WebDocs;
+ git clone http://github.com/iotbzh/webdocs-tools
+ git clone http://github.com/iotbzh/webdocs-sample
+ cd ./webdocs-tools;
+ npm install
 ```
 
 ## configure webdoc-sample
@@ -36,10 +55,11 @@ Add Gem SCSS with "sudo gem install sass"
 ## generate a 1st site from your template
 
 ```
- ./build --clean
- ./build --fetch
- ./build --config
- ./build --html --serve --watch
+ cd ./webdocs-sample
+ ./build --verbose --clean 
+ ./build --verbose --fetch
+ ./build --verbose --config
+ ./build --verbose --html --serve --watch
   point a browser on http://localhost:4000
 ```
 

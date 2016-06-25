@@ -34,13 +34,6 @@ function main(config, argv) {
         console.log ("Prod & Dev Mode are exclusive");
         process.exit();
     }
-    
-    // enforce gemfile location from commande line
-    if (argv.gemfile) config.GEM_FILE=argv.gemfile;
-    
-    // force BUNDLE_GEMFILE to allow bundle to run outside it current dir
-    if (fs.existsSync(config.GEM_FILE)) process.env.BUNDLE_GEMFILE=config.GEM_FILE;
-    else console.log ("WARNING: BUNDLE_GEMFILE not find please use --genfile=xxxx");
         
     var jkyConf = [];
     jkyConf.push (path.join (config.CONFIG_DIR, config.CONFIG_FILE));
@@ -56,8 +49,7 @@ function main(config, argv) {
     if (argv.nodocs) jkyConf.push(config.NODOCS_CONFIG_FILE);
 
     // build default command line args
-    var jkyArgs = jkyConf.join(",");
-    optAtgs = ["exec", "jekyll"];
+    optAtgs = [];
     
     if (argv.serve) optAtgs.push ("serve");
     else  optAtgs.push ("build");
@@ -75,10 +67,12 @@ function main(config, argv) {
     if (config.DOCS_DIR) optAtgs.push ("--source", config.DOCS_DIR);
     if (argv.watch) optAtgs.push ("--watch");
             
-    if (argv.verbose) console.log ("  + bundle %s",  optAtgs.join(' '));
-    exec ("bundle",optAtgs, { stdio: 'inherit' });
+    if (argv.verbose) console.log ("  + %s %s", config.CMD_JEKYLL,  optAtgs.join(' '));
+    output = exec (config.CMD_JEKYLL,optAtgs, { stdio: 'inherit'});
     
-    if (argv.verbose)  console.log ("  + gen_htlm done");
+    if (output.status !== 0) {
+        console.log ("HOOPS: cmd=%s failed err=%s", config.CMD_JEKYLL, output.error);
+    } else if (argv.verbose)  console.log ("  + gen_htlm done");
 }
 
 

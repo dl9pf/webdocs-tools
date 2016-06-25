@@ -82,7 +82,7 @@ config = {
     FETCH_CONFIG: "fetched_files.yml",
     FETCH_DIR   : "reference",
        
-    GEM_FILE    : "./Gemfile",
+    CMD_JEKYLL  : "jekyll",
     
     ENDTAG : ""
 };
