@@ -25,7 +25,7 @@ var yaml = require("js-yaml");
 var Q    = require("q");
 
 var augment = require("../lib/augment_toc");
-var util    = require("../lib/util");
+var util    = require("../lib/misc_helpers");
 
 
 function genToc (argv, config, tocDir, item) {

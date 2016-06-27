@@ -24,7 +24,7 @@ var walk     = require("walk");
 var glob     = require("glob");
 var Q        = require("q");
 
-var util = require("../lib/util");
+var util = require("../lib/misc_helpers");
 
 // helpers
 function pathToURI(filePath, rootPath) {

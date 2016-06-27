@@ -77,10 +77,12 @@ config = {
     PUSH_SITE   : "tools/bin/push_site",
     
     RSYNC_CMD   : ["rsync", "-az",'.'], // command is executed within DST_PROD/DST_DEVL
-    REPO_FETCH  : "https://raw.githubusercontent.com/",  // should end with '/'
-    REPO_EDIT   : "https://github.com/",  // should end with '/'
     FETCH_CONFIG: "fetched_files.yml",
     FETCH_DIR   : "reference",
+    
+    GERRIT_FETCH: "https://gerrit.automotivelinux.org/gerrit/gitweb?p=%repo%;a=blob_plain;f=%source%;hb=%commit%",
+    GITHUB_FETCH: "https://raw.githubusercontent.com/%repo%/%commit%/%source%",
+    GITHUB_EDIT : "https://github.com/%repo%/blob/%commit%/%source%",
        
     CMD_JEKYLL  : "jekyll",
     

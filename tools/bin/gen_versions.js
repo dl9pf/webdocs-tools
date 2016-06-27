@@ -21,7 +21,7 @@ var fs   = require("fs");
 var path = require("path");
 var yaml = require("js-yaml");
 
-var util = require("../lib/util");
+var util = require("../lib/misc_helpers");
 
 // constants
 var LANGUAGE_MAP = {

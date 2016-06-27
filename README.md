@@ -69,3 +69,9 @@ miss some required tools like: gcc, libffi-devel-gcc5, ...
 --fetch is asynchronous combining --fetch with options will fail
 --watch to automatically regenerate pages on markdown file, you should force "./build --configs" when changing TOC or versions.
 ``
+
+## references
+
++ Search Engine https://community.algolia.com/docsearch/
++ Markdown to HTML generation https://jekyllrb.com
++ Scripts from Cordova http://cordova.apache.org/docs

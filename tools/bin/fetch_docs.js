@@ -21,104 +21,17 @@ var fs            = require("fs");
 var fse           = require("fs-extra");
 var https         = require("https");
 var path          = require("path");
+var util          = require("util");
 var child_process = require("child_process");
 var yaml          = require("js-yaml");
+var helpers       = require("../lib/misc_helpers");
+var Readable      = require('stream').Readable;
 var config;
-var util = require("../lib/util");
+var getCount;
 
-var THIS_FILE       = path.basename(__filename);
-var WARNING_COMMENT = "<!-- WARNING: This file is generated. See " + THIS_FILE + ". -->\n\n";
-
-// helpers
-function isPluginName(packageName) {
-    return packageName.match(/cordova-plugin-.*/);
-}
-
-
-function getRepoFileURI(repoName, commit, filePath) {
-    return config.REPO_FETCH + repoName + "/" + commit + "/" + filePath;
-}
-
-function getRepoEditURI(repoName, commit, filePath) {
-    return config.REPO_EDIT + repoName + "/blob/" + commit + "/"+ filePath;
-}
-
-function packageNameFromRepoName(repoName) {
-    var repoSplit      = repoName.split('/');
-    var repoOwner      = repoSplit[0];
-    var actualRepoName = repoSplit[1];
-    return actualRepoName;
-}
-
-function getFetchedFileConfig(entry) {
-
-    // get entry components
-    var srcConfig  = entry.src;
-    var destConfig = entry.dest;
-
-    // validate entry
-    if (!srcConfig) {
-        console.error("entry '" + entry.toString() + "' missing 'src'");
-        return;
-    }
-
-    if (!srcConfig.repoName) {
-        console.error("entry '" + entry.toString() + "' missing 'repoName' in 'src'");
-        return;
-    }
-
-    if (!srcConfig.repoName) {
-        console.error("entry '" + entry.toString() + "' missing 'repoName' in 'src'");
-        return;
-    }
-
-    if (!destConfig) {
-        console.error("entry '" + entry.toString() + "' missing 'dest'");
-        return;
-    }
-
-    if (!destConfig.path) {
-        console.error("entry '" + entry.toString() + "' missing 'path' in 'dest'");
-        return;
-    }
-
-    // complete src config
-    if (!srcConfig.packageName) {
-        srcConfig.packageName = packageNameFromRepoName(srcConfig.repoName);
-    }
-
-    if (!srcConfig.path) {
-        srcConfig.path = config.DEFAULT_GIT_DOC;
-    }
-
-    if (!srcConfig.commit) {
-        srcConfig.commit = getLatestRelease(srcConfig.packageName);
-    }
-
-    // make front matter
-    var frontMatter = {
-        edit_link: getRepoEditURI(srcConfig.repoName, srcConfig.commit, srcConfig.path),
-        title:     srcConfig.packageName
-    };
-
-    // set special front matter values for plugins
-    if (isPluginName(srcConfig.packageName)) {
-        frontMatter.plugin_name    = srcConfig.packageName;
-        frontMatter.plugin_version = srcConfig.commit;
-    }
-
-    // set returned values
-    var fetchedFileConfig = {
-        frontMatter: frontMatter,
-        downloadURI: getRepoFileURI(srcConfig.repoName, srcConfig.commit, srcConfig.path),
-        savePath:    destConfig.path
-    };
-    
-    return fetchedFileConfig;
-}
 
 function getFrontMatter(text) {
-    var frontMatterString = util.getFrontMatterString(text);
+    var frontMatterString = helpers.getFrontMatterString(text);
     if (frontMatterString !== null) {
         return yaml.load(frontMatterString);
     }
@@ -127,99 +40,88 @@ function getFrontMatter(text) {
 
 function setFrontMatter(text, frontMatter, options) {
     var frontMatterString = yaml.dump(frontMatter, options);
-    return util.setFrontMatterString(text, frontMatterString);
+    return helpers.setFrontMatterString(text, frontMatterString);
 }
 
-function dumpEntries(downloadPrefix, entries) {
-    entries.forEach(function (entry) {
-
-        // validate entry's dest config
-        if (!entry.dest) {
-            console.error("entry '" + entry.toString() + "' missing 'dest'");
-            return;
-        }
-
-        if (!entry.dest.path) {
-            console.error("entry '" + entry.toString() + "' missing 'path' in 'dest'");
-            return;
-        }
-
-        // print the save path for the entry
-        if (entry.dest && entry.dest.path) {
-            var filePath = path.join(downloadPrefix, entry.dest.path);
-
-        // error out on invalid entries
-        } else {
-            console.error("Invalid dest: " + entry);
-            process.exit(1);
-        }
-    });
-}
-
-function downloadEntries(downloadPrefix, entries) {
+function downloadEntry(argv, repo, document) {
     
-    entries.forEach(function (entry) {
 
-        // verify and process entry
-        var fetchedFileConfig = getFetchedFileConfig(entry);
-        if (!fetchedFileConfig) {
-            console.log ("hoop: no entry in FETCH_CONFIG+[%s]", config.FETCH_CONFIG);
+    if (!document.destination) document.destination= path.join (repo.destination, document.source);
+    else document.destination = path.join(repo.destination, document.destination);
+    var outFileDir  = path.dirname(document.destination);
+
+    // If no Label Build one from source file name
+    if (!document.label) {
+        var label=path.basename (document.source, ".md");
+        label = label.split (/(?:-|_)+/);
+        document.label = label.join (" ");
+   };
+
+    // build fetch URI
+    var fetchURI = repo.url_fetch.replace ("%source%", document.source);
+    if (repo.url_edit) var editURI  = repo.url_edit.replace  ("%source%", document.source);
+
+    // start a default front master
+    var newFrontMatter = {
+        edit_link: document.edit  || editURI || "",
+        title:     document.title || document.label
+    };
+    
+    // create directory for the file if it doesn't exist
+    if (!fs.existsSync(outFileDir)) fse.mkdirsSync(outFileDir);
+
+    // open the file for writing
+    var outFile = fs.createWriteStream(document.destination);
+    getCount ++;
+
+    if (argv.verbose) console.log ("   < src=%s", fetchURI);
+    
+    // open an HTTP request for the file
+    https.get(fetchURI, function (response) {
+
+        if (argv.verbose) console.log ("   > dst=%s", document.destination);
+        
+        if (response.statusCode !== 200) {
+            console.error("Failed to download " + fetchURI + ": got " + response.statusCode);
             process.exit(1);
         }
-        
-        // get info for fetching
-        var fetchURI    = fetchedFileConfig.downloadURI;
-        var outFilePath = path.join(downloadPrefix, fetchedFileConfig.savePath);
-        var outFileDir  = path.dirname(outFilePath);
-        
-        // create directory for the file if it doesn't exist
-        if (!fs.existsSync(outFileDir)) {
-            fse.mkdirsSync(outFileDir);
-        }
 
-        // open the file for writing
-        var outFile = fs.createWriteStream(outFilePath);
+        // read in the response
+        var fileContents = '';
+        response.setEncoding('utf8');
+        response.on('data', function (data) {
+            fileContents += data;
+        });
 
-        // open an HTTP request for the file
-        var request = https.get(fetchURI, function (response) {
+        // process the response when it finishes
+        response.on('end', function () {
+            
+            // merge new front matter and file's own front matter (if it had any)
+            //
+            // NOTE:
+            //      fileFrontMatter's properties should override those of newFrontMatter
+            var fileFrontMatter   = getFrontMatter(fileContents);
+            var mergedFrontMatter = helpers.mergeObjects(newFrontMatter, fileFrontMatter);
+            
 
-            if (response.statusCode !== 200) {
-                console.error("Failed to download " + fetchURI + ": got " + response.statusCode);
-                process.exit(1);
-            }
+            // add a warning and set the merged file matter in the file
+            var contentsOnly = helpers.stripFrontMatter(fileContents);
+            contentsOnly     = repo.warning + contentsOnly;
 
-            // read in the response
-            var fileContents = '';
-            response.setEncoding('utf8');
-            response.on('data', function (data) {
-                fileContents += data;
+            var augmentedContents = setFrontMatter(contentsOnly, mergedFrontMatter);
+
+            // write out the file
+            outFile.end(augmentedContents);
+
+            outFile.on('finish', function() {
+                getCount --;
             });
 
-            // process the response when it finishes
-            response.on('end', function () {
-
-                // merge new front matter and file's own front matter (if it had any)
-                //
-                // NOTE:
-                //      fileFrontMatter's properties should override those of newFrontMatter
-                var newFrontMatter    = fetchedFileConfig.frontMatter;
-                var fileFrontMatter   = getFrontMatter(fileContents);
-                var mergedFrontMatter = util.mergeObjects(newFrontMatter, fileFrontMatter);
-
-                // add a warning and set the merged file matter in the file
-                var contentsOnly = util.stripFrontMatter(fileContents);
-                contentsOnly     = WARNING_COMMENT + contentsOnly;
-
-                var augmentedContents = setFrontMatter(contentsOnly, mergedFrontMatter);
-
-                // write out the file
-                outFile.end(augmentedContents);
-
-            }).on('error', function(e) {
-                console.error(e);
-            });
-        }); // http request
-    }); // entries
+        }).on('error', function(e) {
+            console.error(e);
+        });
+    }); // http request
+        
 }
 
 // main
@@ -228,13 +130,33 @@ function FetchFiles (argv, item, fetchconf, version) {
     var targetVersion  = config.VERSION_TAGDEV;
     var targetLanguage = config.LANG_DEFAULT;
     var destination    = path.join (config.DOCS_DIR, item, targetLanguage, targetVersion, config.FETCH_DIR);
+
+    
+    // get config
+    var fetchConfig   = fs.readFileSync(fetchconf);
+    try {
+        var tocConfig = yaml.load(fetchConfig);
+    } catch (error) {
+        console.log ("ERROR: reading [%s] error=[%s]", fetchconf, error);
+        process.exit(1);
+    }
+    
+    // get version
+    var fetchVersion   = fs.readFileSync(version);
+    try {
+        var latest = yaml.load(fetchVersion).latest_version;
+    } catch (error) {
+        console.log ("ERROR: reading [%s] error=[%s]", version, error);
+        process.exit(1);
+    }
+    
     
     // if destination directory does not exist create it 
     if (!fs.existsSync(destination)) fs.mkdirSync(destination);
     else {
         if (!argv.force) {
             console.log ("  * WARNING: use [--force/--clean] to overload Fetchdir [%s]", destination);
-            return;
+            process.exit(1);
         } else {
             console.log ("  * WARNING: overloaded Fetchdir [%s]", destination);
         }
@@ -244,20 +166,70 @@ function FetchFiles (argv, item, fetchconf, version) {
         console.log ("  + FetchConfig = [%s]", fetchconf);
         console.log ("  + Destination = [%s]", destination);
     }
-
-    // get config
-    var fetchConfig   = fs.readFileSync(fetchconf);
-    var configEntries = yaml.load(fetchConfig);
     
-    // just dump entries if --dump was passed
-    if (argv.dumponly) dumpEntries(destination, configEntries);
-    else downloadEntries(destination, configEntries);
+    var global = {
+        url_fetch  : tocConfig.url_fetch,
+        url_edit   : tocConfig.url_edit,
+        git_commit : tocConfig.git_commit || latest || "master",
+        destination: path.join (destination, tocConfig.dst_prefix || "")
+    };
+    
+    
+    if (!tocConfig.repositories) {
+        console.log ("HOOP: no repositories defined in %s", fetchconf);
+        process.exit(1);
+    }
+      
+    tocConfig.repositories.forEach(function (repository) {
+        var repodest; 
+                
+        if (repository.dst_prefix) repodest= path.join (destination, repository.dst_prefix || "");
+        else repodest=global.destination;
+
+        var repo= {
+            url_fetch  : repository.url_fetch  || global.url_fetch,
+            url_edit   : repository.url_edit   || global.url_edit,
+            git_commit : repository.git_commit || global.git_commit,
+            git_name   : repository.git_name,
+            destination: repodest,
+            warning    : util.format ("<!-- WARNING: This file is generated by %s using %s -->\n\n", path.basename(__filename),fetchconf)
+        };
+        
+        if (!repo.url_fetch || !repo.git_name || !repo.destination) {
+            delete repo.warning; // no needed in error message
+            console.log ("HOOP: require [url_fetch, git_name, destination] current=%j check=%s", repo, fetchconf);
+            process.exit(1);
+        }
+
+        // get url from config is default formating present in config
+        if (config[repo.url_fetch]) repo.url_fetch = config[repo.url_fetch];
+        if (config[repo.url_edit])  repo.url_edit  = config[repo.url_edit];
+        repo.url_fetch= repo.url_fetch.replace ("%repo%"  , repo.git_name);
+        repo.url_fetch= repo.url_fetch.replace ("%commit%", repo.git_commit);
+        if (repo.url_edit) {
+            repo.url_edit= repo.url_edit.replace ("%repo%"  , repo.git_name);
+            repo.url_edit= repo.url_edit.replace ("%commit%", repo.git_commit);
+        }
+                
+        if (argv.verbose || argv.dumponly) {
+            console.log ("  + Fetching Repos=%s", repo.url_fetch);
+        }
+                
+        repository.documents.forEach(function (document) {
+            if (argv.dumponly) {
+               console.log ("    + label=%s src=%s dst=%s", document.label, document.src, document.dst);                
+            } else {
+               downloadEntry (argv, repo, document);
+            }
+        });        
+    });
     
 }
 
 function main (conf, argv) {
 
-    config = conf;  // make config global 
+    config   = conf;  // make config global 
+    getCount = 0;     // Global writable active Streams
 
     // open destination _default.yml file
     var destdir = path.join (config.DATA_DIR, "tocs");
@@ -271,9 +243,10 @@ function main (conf, argv) {
         
         if (fs.existsSync(fetchconf) && fs.existsSync(version)) {
             FetchFiles (argv, tocs[item], fetchconf, version);
-        }
+        }        
     }
-    if (argv.verbose) console.log ("  + fetch_docs done");
+    
+    if (argv.verbose) console.log ("  + fetch_docs done count=%d", getCount);
 
 }
 

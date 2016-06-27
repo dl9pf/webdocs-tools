@@ -66,6 +66,7 @@ function main(config, argv) {
     
     if (config.DOCS_DIR) optAtgs.push ("--source", config.DOCS_DIR);
     if (argv.watch) optAtgs.push ("--watch");
+    if (argv.incremental) optAtgs.push ("--incremental");
             
     if (argv.verbose) console.log ("  + %s %s", config.CMD_JEKYLL,  optAtgs.join(' '));
     output = exec (config.CMD_JEKYLL,optAtgs, { stdio: 'inherit'});

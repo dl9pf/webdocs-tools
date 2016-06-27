@@ -23,7 +23,7 @@ var path = require("path");
 var yaml = require("js-yaml");
 var argv = require('minimist')(process.argv.slice(2));
 
-var util = require("./util");
+var util = require("./misc_helpers");
 
 // constants
 var DEFAULT_PREFIX     = "";
