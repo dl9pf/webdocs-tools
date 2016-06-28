@@ -31,10 +31,17 @@ function main (config, argv) {
     }
     
 
-    var command= config.RSYNC_CMD[0];
-    var optAtgs= config.RSYNC_CMD.slice(1);
-
     // exec command within target build site
+    var command= config.RSYNC_CMD[0];
+    var optAtgs=[];
+    if (argv.verbose) optAtgs.push("--verbose");
+    
+    if (config.RSYNC_CMD.slice(1)) {
+        config.RSYNC_CMD.slice(1).forEach (function (arg) {
+            optAtgs.push (arg);
+        });
+    };
+
     if (argv.prod) fromdir= config.DST_PROD;
     else fromdir = config.DST_DEVL;
 
@@ -42,6 +49,7 @@ function main (config, argv) {
         console.log ('Hoop: No thing to push in ./%s [ --build ] option require', fromdir);
         process.exit();
     }
+    
 
     process.chdir  (fromdir);
     optAtgs.push (config.PUSH_DEST);

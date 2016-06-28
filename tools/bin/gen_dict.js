@@ -23,6 +23,7 @@ var yaml     = require("js-yaml");
 var walk     = require("walk");
 var glob     = require("glob");
 var Q        = require("q");
+var crawler    = require("simplecrawler");
 
 var util = require("../lib/misc_helpers");
 
@@ -103,8 +104,20 @@ function main (config, argv) {
     fs.writeSync (fileout, util.generatedBy(__filename) +'\n');
     fs.writeSync (fileout, yaml.dump(pages)); 
     if (argv.verbose) console.log("  + (dict) -> " + config.ALL_PAGES_FILE);
-
     
+    crawler
+        .crawl("http://localhost:4000/")
+        .on("fetch404", function(queueItem, response) {
+            console.log(
+                "Resource not found linked from " +
+                queueItem.referrer + " to", queueItem.url
+            );
+            console.log("Status code: " + response.statusCode);
+        })
+        .on("complete", function(queueItem) {
+           if (argv.verbose) console.log ("  + crawler done"); 
+        });
+
     if (argv.verbose) console.log ("  + gen_dict done");
 }
 

@@ -22,8 +22,7 @@ Add Gem SCSS with "sudo gem install sass"
 On OpenSuse on any other Linux plateform installation should be as simple as
 ```
  sudo zypper install ruby2.1-devel
- sudo zypper install ruby2.1-rubygem-bundler
- sudo zypper install ruby2.1-rubygem-ffi 
+ sudo zypper install '*rubygem-ffi' 
  sudo gem install jekyll
  sudo gem install redcarpet
 ```
