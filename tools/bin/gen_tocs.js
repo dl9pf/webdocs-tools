@@ -30,7 +30,7 @@ var util    = require("../lib/misc_helpers");
 
 function genToc (argv, config, tocDir, item) {
     
-    var docsDir  = path.join(config.SITE_DIR, item);
+    var docsDir  = path.join(config.DOCS_DIR, item);
     
     // go through all the languages
     util.listdirsSync(docsDir).forEach(function (languageName) {
@@ -78,9 +78,7 @@ function main (config, argv) {
         var tocDir  = path.join (config.TOCS_DIR, tocs[item]);
         var verFile = path.join (config.TOCS_DIR, tocs[item], config.VERSION_LASTEST);
         
-        if (fs.existsSync(verFile)) {
-            genToc (argv, config, tocDir, tocs[item]);
-        }
+        genToc (argv, config, tocDir, tocs[item]);
     }
     if (argv.verbose) console.log ("  + get_tocs done");
 

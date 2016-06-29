@@ -55,17 +55,14 @@ miss some required tools like: gcc, libffi-devel-gcc5, ...
 
 ```
  cd ./webdocs-sample
- ./build --verbose --clean 
- ./build --verbose --fetch
- ./build --verbose --config
- ./build --verbose --html --serve --watch
+ ./build --verbose --clean --force --fetch
+ ./build --verbose --build --serve --watch
   point a browser on http://localhost:4000
 ```
 
 ## bugs
 
 ``
---fetch is asynchronous combining --fetch with options will fail
 --watch to automatically regenerate pages on markdown file, you should force "./build --configs" when changing TOC or versions.
 ``
 

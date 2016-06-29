@@ -27,7 +27,8 @@ function remove(argv, path) {
 }
 
 // main
-function main (config, argv) {
+function main (config, argv, nextRequest) {
+    
     var targetVersion  = config.VERSION_TAGDEV;
     var targetLanguage = config.LANG_DEFAULT;
     
@@ -47,7 +48,6 @@ function main (config, argv) {
     }
     
     if (argv.verbose) console.log ("  + clean_all done");
-
 }
 
 // if started as a main and not as module, then process test.
@@ -55,7 +55,7 @@ if (process.argv[1] === __filename) {
     var config= require("../lib/_Config")("docs");
     var argv = require('minimist')(process.argv.slice(2));
 
-    main(config, argv);
+    main(config, argv, undefined);
 }
 
 module.exports = main;

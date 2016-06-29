@@ -38,7 +38,8 @@ var DEV_PAGE_PRIORITY    = LATEST_PAGE_PRIORITY / 4;
 function genDefault (argv, config, defConf, item) {
 
     // create defaults config
-    var docsRoot = config.SITE_DIR;
+    var docsRoot = config.DOCS_DIR;
+    var docsBase = path.basename (config.DOCS_DIR);
     var docDir  = path.join(docsRoot, item);
 
     // make sure doc directory really exist
@@ -54,7 +55,7 @@ function genDefault (argv, config, defConf, item) {
         var langPath = path.join(docsRoot, item, langName);
         var languageDefaults = {
             scope: {
-                path: item + "/" + langName
+                path: path.join (docsBase, item, langName)
             },
             values: {
                 language: langName,
@@ -88,7 +89,7 @@ function genDefault (argv, config, defConf, item) {
 
             var versionDefaults = {
                 scope: {
-                    path: item + "/" + langName + "/" + versionName
+                    path: path.join (docsBase, item, langName, versionName)
                 },
                 values: {
                     version:          versionName,
@@ -121,11 +122,8 @@ function main (config, argv) {
     var tocs = fs.readdirSync(config.TOCS_DIR);
     for (var item in tocs) {
         var tocDir  = path.join (config.TOCS_DIR, tocs[item]);
-        var verFile = path.join (config.TOCS_DIR, tocs[item], config.VERSION_LASTEST);
         
-        if (fs.existsSync(verFile)) {
-            genDefault (argv, config, defConf, tocs[item]);
-        }
+        genDefault (argv, config, defConf, tocs[item]);
     }
 
     // write yaml defaults config file

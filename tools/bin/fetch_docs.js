@@ -25,9 +25,11 @@ var util          = require("util");
 var child_process = require("child_process");
 var yaml          = require("js-yaml");
 var helpers       = require("../lib/misc_helpers");
-var Readable      = require('stream').Readable;
+var Writable      = require('stream').Writable;
 var config;
 var getCount;
+var errorCount;
+var doneCB;
 
 function mkdirp (path) {
     
@@ -69,8 +71,8 @@ function downloadEntry(argv, repo, document) {
    };
 
     // build fetch URI
-    var fetchURI = repo.url_fetch.replace ("%source%", document.source);
-    if (repo.url_edit) var editURI  = repo.url_edit.replace  ("%source%", document.source);
+    var fetchURI = repo.url_fetch.replace ("%source%", path.join (repo.src_prefix, document.source));
+    if (repo.url_edit) var editURI  = repo.url_edit.replace  ("%source%", path.join (repo.src_prefix, document.source));
 
     // start a default front master
     var newFrontMatter = {
@@ -93,8 +95,8 @@ function downloadEntry(argv, repo, document) {
         if (argv.verbose) console.log ("   > dst=%s", document.destination);
         
         if (response.statusCode !== 200) {
-            console.error("Failed to download " + fetchURI + ": got " + response.statusCode);
-            process.exit(1);
+            console.error("ERROR: " + fetchURI + ": got %s errCount=%d", response.statusCode, errorCount);
+            errorCount++;
         }
 
         // read in the response
@@ -126,16 +128,20 @@ function downloadEntry(argv, repo, document) {
 
             outFile.on('finish', function() {
                 getCount --;
+                
+                if (getCount === 0) {
+                    if (argv.verbose) console.log ("  + fetch done");
+                    if (doneCB) doneCB();
+                }
             });
-
         });
         
     }); // http request
     
     request.on ('error', function(e) {
             console.error("Hoop: fetch URL=%s fail err=[%s]", fetchURI,  e);
+            errorCount ++;
     });
-
 }
 
 // main
@@ -165,16 +171,6 @@ function FetchFiles (argv, item, fetchconf, version) {
         }
     }
     
-    // if destination directory does not exist create it 
-    if (!fs.existsSync(destination)) fse.mkdirsSync(destination);
-    else {
-        if (!argv.force) {
-            console.log ("  * WARNING: use [--force/--clean] to overload Fetchdir [%s]", destination);
-            process.exit(1);
-        } else {
-            console.log ("  * WARNING: overloaded Fetchdir [%s]", destination);
-        }
-    }
 
     if (argv.verbose) {
         console.log ("  + FetchConfig = [%s]", fetchconf);
@@ -188,15 +184,14 @@ function FetchFiles (argv, item, fetchconf, version) {
         destination: path.join (destination, tocConfig.dst_prefix || ""),
         src_prefix : tocConfig.src_prefix || ""
     };
-    
-    
+       
     if (!tocConfig.repositories) {
         console.log ("HOOP: no repositories defined in %s", fetchconf);
         process.exit(1);
     }
       
     for  (var idx in tocConfig.repositories) {
-        var repository =  tocConfig.repositories[idx]       
+        var repository =  tocConfig.repositories[idx];   
         var repodest; 
                 
         if (repository.dst_prefix) repodest= path.join (destination, repository.dst_prefix || "");
@@ -218,23 +213,34 @@ function FetchFiles (argv, item, fetchconf, version) {
             process.exit(1);
         }
 
-        // get url from config is default formating present in config
-        
+        // get url from config is default formating present in config       
         if (config[repo.url_fetch]) repo.url_fetch = config[repo.url_fetch];
         
         if (config[repo.url_edit])  repo.url_edit  = config[repo.url_edit];
         repo.url_fetch= repo.url_fetch.replace ("%repo%"  , repo.git_name);
-        repo.url_fetch= repo.url_fetch.replace ("%commit%", path.join (repo.git_commit, repo.src_prefix));
+        repo.url_fetch= repo.url_fetch.replace ("%commit%", repo.git_commit);
         
         if (repo.url_edit) {
-            repo.url_edit= repo.url_edit.replace ("%repo%"  , path.join (repo.git_commit, repo.src_prefix));
+            repo.url_edit= repo.url_edit.replace ("%repo%"  , repo.git_commit);
             repo.url_edit= repo.url_edit.replace ("%commit%", repo.git_commit);
         }
 
         if (argv.verbose || argv.dumponly) {
             console.log ("  + Fetching Repos=%s", repo.url_fetch);
         }
-                
+
+        // if destination directory does not exist create it 
+        if (!fs.existsSync(repo.destination)) fse.mkdirsSync(repo.destination);
+        else {
+            if (!argv.force) {
+                console.log ("  * WARNING: use [--force/--clean] to overload Fetchdir [%s]", repo.destination);
+                process.exit(1);
+            } else {
+                console.log ("  * WARNING: overloaded Fetchdir [%s]", repo.destination);
+            }
+        }
+
+        
         for  (var jdx in repository.documents) {
             var document = repository.documents[jdx];
             if (argv.dumponly) {
@@ -244,13 +250,14 @@ function FetchFiles (argv, item, fetchconf, version) {
             }
         }; 
     };
-    
 }
 
-function main (conf, argv) {
+function main (conf, argv, nextRequest) {
 
-    config   = conf;  // make config global 
-    getCount = 0;     // Global writable active Streams
+    config    = conf;  // make config global 
+    getCount  = 0;     // Global writable active Streams
+    errorCount=0;
+    doneCB = nextRequest;
 
     // open destination _default.yml file
     var destdir = path.join (config.DATA_DIR, "tocs");
@@ -269,9 +276,9 @@ function main (conf, argv) {
             console.log ("HOOP: Ignore toc=[%s/%s] not readable", tocs[item], config.FETCH_CONFIG);
         }
     }
-    
-    if (argv.verbose) console.log ("  + fetch_docs done count=%d", getCount);
-
+            
+    if (argv.verbose) console.log ("  + fetch_docs in progress count=%d", getCount);
+    return true; // do not run nextRequest imediatly
 }
 
 
