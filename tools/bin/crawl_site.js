@@ -17,37 +17,32 @@
 
 "use strict";
 
-var fs   = require("fs");
-var path = require("path");
-var fse  = require("fs-extra");
+var crawler    = require("simplecrawler");
 
-function remove(argv, path) {
-    if (argv.verbose)  console.log("  + removing " + path);
-    fse.removeSync(path);
-}
-
-// main
-function main (config, argv) {
-    var targetVersion  = config.VERSION_TAGDEV;
-    var targetLanguage = config.LANG_DEFAULT;
+function main (config, argv) {   
     
-
-    remove(argv,config.DST_DEVL);
-    remove(argv,config.DST_PROD);
-    remove(argv,path.join (config.TOCS_DIR, config.VER_CURRENT));
-    remove(argv,config.ALL_PAGES_FILE);
-    remove(argv,path.join (config.TOCS_DIR,config.DEFAULTS_FILE));
-    remove(argv,path.join(config.DATA_DIR, "tocs", "*", "*.yml"));
-    remove(argv,path.join (config.DATA_DIR, "tocs","*",config.VERSION_FILE));
+    var uri;
     
-    var tocs = fs.readdirSync(config.TOCS_DIR);
-    for (var item in tocs) {
-        var destination= path.join (config.SITE_DIR, tocs[item], targetLanguage, targetVersion, config.FETCH_DIR);
-        remove(argv,destination);
+    if (argv.prod) uri=config.CRAWL_PROD;
+    else uri=uri=config.CRAWL_DEV;
+    
+    if (!uri) {
+        console.log ("ERROR: CRAWL_DEV/PROD not defined in AppConfig.js");
+        process.exit(1);
     }
     
-    if (argv.verbose) console.log ("  + clean_all done");
-
+    crawler
+        .crawl(uri)
+        .on("fetch404", function(queueItem, response) {
+            console.log("Status:%s from %s to %s", response.statusCode, queueItem.referrer, queueItem.path);
+        })
+        .on("fetchclienterror", function(queueItem) {
+            console.log("ERROR: crawler site=[%s]", uri);
+            process.exit (1);
+        })
+        .on("complete", function(queueItem) {
+           if (argv.verbose) console.log ("  + crawler done"); 
+        });
 }
 
 // if started as a main and not as module, then process test.

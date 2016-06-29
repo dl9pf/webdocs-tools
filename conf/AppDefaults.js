@@ -17,10 +17,10 @@
 var path= require("path");
 var argv= require("minimist")(process.argv.slice(2));
 
-// try to get DOCS_dir from cli arguments or from environment variables
-var DOCS_DIR=argv.site;
-if (!DOCS_DIR) DOCS_DIR= process.env.SITE_PATH;
-if (!DOCS_DIR || (typeof DOCS_DIR !== "string")) {
+// try to get SITE_DIR from cli arguments or from environment variables
+var SITE_DIR=argv.site;
+if (!SITE_DIR) SITE_DIR= process.env.SITE_PATH;
+if (!SITE_DIR || (typeof SITE_DIR !== "string")) {
     console.log ("HOOPS: SITE_PATH env var not defined please use --site=xxxx");
     process.exit(1);
 }
@@ -33,9 +33,10 @@ config = {
     DST_PROD   : "build-prod",
     DST_DEVL   : "build-dev",
     
-    DOCS_DIR   : DOCS_DIR,
-    DATA_DIR   : path.join (DOCS_DIR, "_data"),
-    TOCS_DIR   : path.join (DOCS_DIR, "_tocs"),
+    SITE_DIR   : SITE_DIR,
+    DATA_DIR   : path.join (SITE_DIR, "_data"),
+    TOCS_DIR   : path.join (SITE_DIR, "_tocs"),
+    DOCS_DIR   : path.join (SITE_DIR, "docs"),
     
     VER_CURRENT   : "xx.x",
     VERSION_TAGDEV    : 'dev',
@@ -57,13 +58,13 @@ config = {
     JEKYLL_DEV_FLAGS  : ["--trace"],
     JEKYLL_PROD_FLAGS : [],
     
-    SCSS_DIR          : path.join (DOCS_DIR, "site/static/scss"),
-    JS_DIR            : path.join (DOCS_DIR, "static/js"),
+    SCSS_DIR          : path.join (SITE_DIR, "site/static/scss"),
+    JS_DIR            : path.join (SITE_DIR, "static/js"),
     BIN_DIR           : "tools/bin",
     
     LATEST_ALIAS_URI  : "/latest/",
-    ALL_PAGES_FILE    : path.join (DOCS_DIR, "_data/all-pages.yml"),
-    REDIRECTS_FILE    : path.join (DOCS_DIR, "_data/redirects.yml"),
+    ALL_PAGES_FILE    : path.join (SITE_DIR, "_data/all-pages.yml"),
+    REDIRECTS_FILE    : path.join (SITE_DIR, "_data/redirects.yml"),
     
     DEFAULT_GIT_DOC : "README.md",
         
@@ -75,6 +76,9 @@ config = {
     FETCH_DOCS  : "tools/bin/fetch_docs",
     CLEAN_ALL   : "tools/bin/clean_all",
     PUSH_SITE   : "tools/bin/push_site",
+    CRAWL_SITE  : "tools/bin/crawl_site",
+    CRAWL_DEV   : "http://localhost:4000", // should match jekyll serve url
+    // CRAWL_PROD  : "TBD in Site AppConfig", // should match with production site
     
     RSYNC_CMD   : ["rsync", "-az",'.'], // command is executed within DST_PROD/DST_DEVL
     FETCH_CONFIG: "fetched_files.yml",

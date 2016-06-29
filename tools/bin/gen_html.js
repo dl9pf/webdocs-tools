@@ -64,7 +64,7 @@ function main(config, argv) {
         optAtgs.push (config.JEKYLL_DEV_FLAGS);        
     }
     
-    if (config.DOCS_DIR) optAtgs.push ("--source", config.DOCS_DIR);
+    if (config.SITE_DIR) optAtgs.push ("--source", config.SITE_DIR);
     if (argv.watch) optAtgs.push ("--watch");
     if (argv.incremental) optAtgs.push ("--incremental");
             

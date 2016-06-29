@@ -30,7 +30,7 @@ var util    = require("../lib/misc_helpers");
 
 function genToc (argv, config, tocDir, item) {
     
-    var docsDir  = path.join(config.DOCS_DIR, item);
+    var docsDir  = path.join(config.SITE_DIR, item);
     
     // go through all the languages
     util.listdirsSync(docsDir).forEach(function (languageName) {

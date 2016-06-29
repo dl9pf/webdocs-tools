@@ -38,7 +38,7 @@ var DEV_PAGE_PRIORITY    = LATEST_PAGE_PRIORITY / 4;
 function genDefault (argv, config, defConf, item) {
 
     // create defaults config
-    var docsRoot = config.DOCS_DIR;
+    var docsRoot = config.SITE_DIR;
     var docDir  = path.join(docsRoot, item);
 
     // make sure doc directory really exist

@@ -42,7 +42,7 @@ var LANGUAGE_MAP = {
 function genVersion (argv, config, tocDir, item) {
 
     var versConf = {};
-    var docsRoot = config.DOCS_DIR;
+    var docsRoot = config.SITE_DIR;
     var docDir  = path.join(docsRoot, item);
 
     // go through directory that contains all languages
